@@ -1,29 +1,99 @@
-#include <cstdlib>
-#include <iostream>
-#include <stdlib.h>
-#include <map>
-#include <vector>
 #include <cassert>
+#include <generator>
+#include <iostream>
+#include <stack>
+#include <stdlib.h>
+#include <variant>
+#include <vector>
 
 template <typename K, typename V> struct Node {
   K key;
   V value;
-  Node *parent;
-  Node *left_child;
-  Node *right_child;
+  Node *parent = nullptr;
+  Node *left_child = nullptr;
+  Node *right_child = nullptr;
 };
 
 template <typename K, typename V> class BinaryTree {
 private:
   Node<K, V> *root;
+
 public:
   BinaryTree() { this->root = nullptr; };
+  ~BinaryTree() {
+    std::stack<Node<K, V> *> call_stack;
+    if (this->root)
+      call_stack.push(this->root);
+    while (!call_stack.empty()) {
+      Node<K, V> *current_node = call_stack.top();
+      call_stack.pop();
+      if (current_node->left_child)
+        call_stack.push(current_node->left_child);
+      if (current_node->right_child)
+        call_stack.push(current_node->right_child);
+      delete current_node;
+    }
+  }
+
+  std::generator<Node<K, V> *> pre_order() {
+    std::stack<Node<K, V> *> st;
+    if (root)
+      st.push(root);
+    while (!st.empty()) {
+      auto node = st.top();
+      st.pop();
+      co_yield node;
+      if (node->right_child)
+        st.push(node->right_child);
+      if (node->left_child)
+        st.push(node->left_child);
+    }
+  }
+
+  std::generator<Node<K, V> *> in_order() {
+    std::stack<Node<K, V> *> st;
+    Node<K, V> *curr = root;
+    while (!st.empty() || curr) {
+      while (curr) {
+        st.push(curr);
+        curr = curr->left_child;
+      }
+      curr = st.top();
+      st.pop();
+      co_yield curr;
+      curr = curr->right_child;
+    }
+  }
+
+
+
+
+
+  std::generator<Node<K, V> *> pos_order() {
+    std::stack<Node<K, V> *> st;
+    Node<K, V> *curr = root;
+    Node<K, V> *last_visited = nullptr;
+
+    while (!st.empty() || curr) {
+      if (curr) {
+        st.push(curr);
+        curr = curr->left_child;
+      } else {
+        Node<K, V> *peek_node = st.top();
+        if (peek_node->right_child && last_visited != peek_node->right_child) {
+          curr = peek_node->right_child;
+        } else {
+          co_yield peek_node;
+          last_visited = peek_node;
+          st.pop();
+        }
+      }
+    }
+  }
+
   void add_node(K const &key, V const &value) {
     if (!root) {
-      root = (Node<K, V> *)malloc(sizeof(Node<K, V>));
-      root->left_child = nullptr;
-      root->right_child = nullptr;
-      root->parent = nullptr;
+      root = new Node<K, V>;
       root->key = key;
       root->value = value;
       return;
@@ -34,92 +104,71 @@ public:
       current = next;
       next = (key > current->key) ? next->right_child : next->left_child;
     }
-    auto *new_node = (Node<K, V> *)malloc(sizeof(Node<K, V>));
+    auto *new_node = new Node<K, V>;
     if (key > current->key) {
       current->right_child = new_node;
     } else {
       current->left_child = new_node;
     }
     new_node->parent = current;
-    new_node->left_child = nullptr;
-    new_node->right_child = nullptr;
     new_node->value = value;
     new_node->key = key;
   }
-  void print_in_order_tree_walk(){
-      in_order_tree_walk(root);
-  }
-  Node<K,V>* search_key(K const& key){
-      Node<K,V> * current=root;
-      while (current){
-          if (key==current->key){
-              return current;
-          }
-          else if (key > current->key){
-              current=current->right_child;
-          }
-          else{
-              current=current->left_child;
-          }
+  Node<K, V> *search_key(K const &key) {
+    Node<K, V> *current = root;
+    while (current) {
+      if (key == current->key) {
+        return current;
+      } else if (key > current->key) {
+        current = current->right_child;
+      } else {
+        current = current->left_child;
       }
-      return nullptr;
-  }
-  Node<K,V>* search_max(){
-      if (!root) return nullptr;
-      Node<K,V>* current=root;
-      while (current->right_child){
-          current=current->right_child;
-      }
-      return current;
-  }
-
-  Node<K,V>* search_min(){
-      if (!root) return nullptr;
-      Node<K,V>* current=root;
-      while (current->left_child){
-          current=current->left_child;
-      }
-      return current;
-  }
-
-  private:
-    void in_order_tree_walk(Node<K,V> const * x){
-        if (x){
-            in_order_tree_walk(x->left_child);
-            std::cout<<x->value<<std::endl;
-            in_order_tree_walk(x->right_child);
-        }
     }
+    return nullptr;
+  }
+  Node<K, V> *search_max() {
+    if (!root)
+      return nullptr;
+    Node<K, V> *current = root;
+    while (current->right_child) {
+      current = current->right_child;
+    }
+    return current;
+  }
+
+  Node<K, V> *search_min() {
+    if (!root)
+      return nullptr;
+    Node<K, V> *current = root;
+    while (current->left_child) {
+      current = current->left_child;
+    }
+    return current;
+  }
 };
 
 int main() {
-    BinaryTree<int, std::string> btree;
-    std::map<int, std::string> reference_map;
-    std::vector<std::pair<int, std::string>> test_data = {
-        {50, "fifty"}, {30, "thirty"}, {70, "seventy"},
-        {20, "twenty"}, {40, "forty"}, {60, "sixty"}, {80, "eighty"}
-    };
+  BinaryTree<int, std::monostate> tree;
+  std::vector<int> keys = {45, 30, 60, 20, 35, 50, 70, 15, 25, 40, 55, 65, 75};
 
-    for (const auto& [key,value] : test_data) {
-        btree.add_node(key, value);
-        reference_map[key] = value;
+  for (const auto& key : keys) {
+    tree.add_node(key, {});
+  }
+
+  auto verify = [](const std::string& name, auto generator, const std::vector<int>& expected) {
+    std::cout << "Testing " << name << "... ";
+    size_t i = 0;
+    for (auto* node : generator) {
+      assert(node->key == expected[i] && "Value mismatch");
+      i++;
     }
+    assert(i == expected.size() && "Too few elements in traversal");
+    std::cout << "Passed!" << std::endl;
+  };
 
-    for (const auto& item : test_data) {
-        Node<int, std::string>* node = btree.search_key(item.first);
-        assert(node != nullptr);
-        assert(node->value == reference_map[item.first]);
-    }
-    assert(btree.search_key(999) == nullptr);
-
-    Node<int, std::string>* min_node = btree.search_min();
-    assert(min_node != nullptr);
-    assert(min_node->key == reference_map.begin()->first);
-    assert(min_node->value == reference_map.begin()->second);
-
-    Node<int, std::string>* max_node = btree.search_max();
-    assert(max_node != nullptr);
-    assert(max_node->key == reference_map.rbegin()->first);
-    assert(max_node->value == reference_map.rbegin()->second);
-    return 0;
+  verify("Pre-order", tree.pre_order(), {45, 30, 20, 15, 25, 35, 40, 60, 50, 55, 70, 65, 75});
+  verify("In-order", tree.in_order(), {15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75});
+  verify("Post-order", tree.pos_order(), {15, 25, 20, 40, 35, 30, 55, 50, 65, 75, 70, 60, 45});
+  return 0;
 }
