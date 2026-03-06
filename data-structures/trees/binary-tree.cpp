@@ -1,7 +1,5 @@
 #include <cassert>
-#include <generator>
 #include <iostream>
-#include <stack>
 #include <stdlib.h>
 #include <variant>
 #include <vector>
@@ -18,77 +16,60 @@ template <typename K, typename V> class BinaryTree {
 private:
   Node<K, V> *root;
 
+  void destroy_recursive(Node<K, V> *node) {
+    if (node) {
+      destroy_recursive(node->left_child);
+      destroy_recursive(node->right_child);
+      delete node;
+    }
+  }
+
+  void pre_order_recursive(Node<K, V> *node, std::vector<Node<K, V> *> &result) {
+    if (node) {
+      result.push_back(node);
+      pre_order_recursive(node->left_child, result);
+      pre_order_recursive(node->right_child, result);
+    }
+  }
+
+  void in_order_recursive(Node<K, V> *node, std::vector<Node<K, V> *> &result) {
+    if (node) {
+      in_order_recursive(node->left_child, result);
+      result.push_back(node);
+      in_order_recursive(node->right_child, result);
+    }
+  }
+
+  void post_order_recursive(Node<K, V> *node, std::vector<Node<K, V> *> &result) {
+    if (node) {
+      post_order_recursive(node->left_child, result);
+      post_order_recursive(node->right_child, result);
+      result.push_back(node);
+    }
+  }
+
 public:
   BinaryTree() { this->root = nullptr; };
   ~BinaryTree() {
-    std::stack<Node<K, V> *> call_stack;
-    if (this->root)
-      call_stack.push(this->root);
-    while (!call_stack.empty()) {
-      Node<K, V> *current_node = call_stack.top();
-      call_stack.pop();
-      if (current_node->left_child)
-        call_stack.push(current_node->left_child);
-      if (current_node->right_child)
-        call_stack.push(current_node->right_child);
-      delete current_node;
-    }
+    destroy_recursive(this->root);
   }
 
-  std::generator<Node<K, V> *> pre_order() {
-    std::stack<Node<K, V> *> st;
-    if (root)
-      st.push(root);
-    while (!st.empty()) {
-      auto node = st.top();
-      st.pop();
-      co_yield node;
-      if (node->right_child)
-        st.push(node->right_child);
-      if (node->left_child)
-        st.push(node->left_child);
-    }
+  std::vector<Node<K, V> *> pre_order() {
+    std::vector<Node<K, V> *> result;
+    pre_order_recursive(root, result);
+    return result;
   }
 
-  std::generator<Node<K, V> *> in_order() {
-    std::stack<Node<K, V> *> st;
-    Node<K, V> *curr = root;
-    while (!st.empty() || curr) {
-      while (curr) {
-        st.push(curr);
-        curr = curr->left_child;
-      }
-      curr = st.top();
-      st.pop();
-      co_yield curr;
-      curr = curr->right_child;
-    }
+  std::vector<Node<K, V> *> in_order() {
+    std::vector<Node<K, V> *> result;
+    in_order_recursive(root, result);
+    return result;
   }
 
-
-
-
-
-  std::generator<Node<K, V> *> pos_order() {
-    std::stack<Node<K, V> *> st;
-    Node<K, V> *curr = root;
-    Node<K, V> *last_visited = nullptr;
-
-    while (!st.empty() || curr) {
-      if (curr) {
-        st.push(curr);
-        curr = curr->left_child;
-      } else {
-        Node<K, V> *peek_node = st.top();
-        if (peek_node->right_child && last_visited != peek_node->right_child) {
-          curr = peek_node->right_child;
-        } else {
-          co_yield peek_node;
-          last_visited = peek_node;
-          st.pop();
-        }
-      }
-    }
+  std::vector<Node<K, V> *> pos_order() {
+    std::vector<Node<K, V> *> result;
+    post_order_recursive(root, result);
+    return result;
   }
 
   void add_node(K const &key, V const &value) {
@@ -156,10 +137,10 @@ int main() {
     tree.add_node(key, {});
   }
 
-  auto verify = [](const std::string& name, auto generator, const std::vector<int>& expected) {
+  auto verify = [](const std::string& name, const std::vector<Node<int, std::monostate>*>& nodes, const std::vector<int>& expected) {
     std::cout << "Testing " << name << "... ";
     size_t i = 0;
-    for (auto* node : generator) {
+    for (auto* node : nodes) {
       assert(node->key == expected[i] && "Value mismatch");
       i++;
     }
