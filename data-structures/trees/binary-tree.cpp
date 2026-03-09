@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <variant>
 #include <vector>
+#include <queue>
 
 template <typename K, typename V> struct Node {
   K key;
@@ -31,7 +32,6 @@ private:
       pre_order_recursive(node->right_child, result);
     }
   }
-
   void in_order_recursive(Node<K, V> *node, std::vector<Node<K, V> *> &result) {
     if (node) {
       in_order_recursive(node->left_child, result);
@@ -47,7 +47,10 @@ private:
       result.push_back(node);
     }
   }
-
+  size_t height_recursive(Node<K,V>* node){
+      if (!node) return 0;
+      return 1+std::max(height_recursive(node->left_child),height_recursive(node->right_child));
+  }
 public:
   BinaryTree() { this->root = nullptr; };
   ~BinaryTree() {
@@ -126,6 +129,22 @@ public:
       current = current->left_child;
     }
     return current;
+  };
+  std::vector<Node<K,V>*> bfs(){
+    std::queue<Node<K,V>*> queue;
+    std::vector<Node<K,V>*> result;
+    if (root) queue.push(root);
+    while (!queue.empty()){
+        auto node_ptr=queue.front();
+        queue.pop();
+        result.push_back(node_ptr);
+        if (node_ptr->left_child) queue.push(node_ptr->left_child);
+        if (node_ptr->right_child) queue.push(node_ptr->right_child);
+    }
+    return result;
+  }
+  size_t height(){
+      return height_recursive(root);
   }
 };
 
@@ -136,7 +155,7 @@ int main() {
   for (const auto& key : keys) {
     tree.add_node(key, {});
   }
-
+  assert(tree.height()==4);
   auto verify = [](const std::string& name, const std::vector<Node<int, std::monostate>*>& nodes, const std::vector<int>& expected) {
     std::cout << "Testing " << name << "... ";
     size_t i = 0;
@@ -151,5 +170,6 @@ int main() {
   verify("Pre-order", tree.pre_order(), {45, 30, 20, 15, 25, 35, 40, 60, 50, 55, 70, 65, 75});
   verify("In-order", tree.in_order(), {15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75});
   verify("Post-order", tree.pos_order(), {15, 25, 20, 40, 35, 30, 55, 50, 65, 75, 70, 60, 45});
+  verify("BFS-order", tree.bfs(), {45, 30, 60, 20, 35, 50, 70, 15, 25, 40, 55, 65, 75});
   return 0;
 }
