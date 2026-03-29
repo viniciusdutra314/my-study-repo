@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <cassert>
 #include <iostream>
 #include <stdlib.h>
@@ -142,7 +143,97 @@ public:
         if (node_ptr->right_child) queue.push(node_ptr->right_child);
     }
     return result;
+  };
+
+  Node<K,V>* get_successor(Node<K,V>* node){
+      if (node==nullptr){
+          return nullptr;
+      }
+
+      if (node->right_child){
+          Node<K,V>* current=node->right_child;
+          while (current->left_child){
+              current=current->left_child;
+          }
+          return current;
+      }
+      else{
+          Node<K,V>* current=node;
+          Node<K,V>* p=node->parent;
+          while (p and current==p->right_child){
+              current=p;
+              p=p->parent;
+          }
+          return p;
+      }
   }
+
+  Node<K,V> * get_predecessor(Node<K,V>* node){
+      if (node->left_child){
+          Node<K,V>* current=node->left_child;
+          while (current->right_child){
+              current=current->right_child;
+          }
+          return current;
+      }
+      else{
+          Node<K,V>* current=node;
+          Node<K,V>* p=current->parent;
+          while (p and current==p->left_child){
+              current=p;
+              p=p->parent;
+          }
+          return p;
+      }
+
+
+
+  };
+
+
+  // void remove(K const& key){
+  //     Node<K,V> *node=this->search_key(key);
+  //     if (!node){
+  //         return;
+  //     }
+  //     Node<K,V>* parent=node->parent;
+  //     if (!parent){
+  //         delete node;
+  //         return;
+  //     }
+  //     bool is_right_child=parent->right_child == node;
+
+  //     if(node->left_child and node->right_child){
+  //         //!TODO()
+  //     }
+  //     if ((node->right_child==nullptr) != (node->left_child==nullptr)){
+
+  //     }
+  //     if (node->left_child==nullptr and node->right_child==nullptr){
+
+  //     }
+
+  //     else if (node->left_child or node->right_child){
+  //         Node<K,V>* child=node->left_child!=nullptr ? node->left_child : node->right_child;
+  //         child->parent=parent;
+  //         if (is_right_child){
+  //             parent->right_child=child;
+  //         }
+  //         else{
+  //             parent->left_child=child;
+  //         }
+  //     }
+  //     else{
+  //         if (is_right_child){
+  //             parent->right_child=nullptr;
+  //         }
+  //         else{
+  //             parent->left_child=nullptr;
+  //         }
+  //     }
+  //     delete node;
+  // }
+
   size_t height(){
       return height_recursive(root);
   }
@@ -167,9 +258,26 @@ int main() {
     std::cout << "Passed!" << std::endl;
   };
 
+
   verify("Pre-order", tree.pre_order(), {45, 30, 20, 15, 25, 35, 40, 60, 50, 55, 70, 65, 75});
   verify("In-order", tree.in_order(), {15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75});
   verify("Post-order", tree.pos_order(), {15, 25, 20, 40, 35, 30, 55, 50, 65, 75, 70, 60, 45});
   verify("BFS-order", tree.bfs(), {45, 30, 60, 20, 35, 50, 70, 15, 25, 40, 55, 65, 75});
+
+  auto* node=tree.search_min();
+  auto tree_in_order=tree.in_order();
+
+  for (auto in_order_node : tree_in_order){
+      assert(node->value==in_order_node->value);
+      node=tree.get_successor(node);
+  }
+  std::cout<<"Successor function works\n";
+
+  node=tree.search_max();
+  for (auto it=tree_in_order.rbegin();it!=tree_in_order.rend();it++){
+      assert((*it)->value==node->value);
+      node=tree.get_predecessor(node);
+  }
+  std::cout<<"Predecessor function works\n";
   return 0;
 }
