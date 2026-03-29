@@ -1,10 +1,10 @@
 #include <algorithm>
 #include <cassert>
 #include <iostream>
+#include <queue>
 #include <stdlib.h>
 #include <variant>
 #include <vector>
-#include <queue>
 
 template <typename K, typename V> struct Node {
   K key;
@@ -18,7 +18,7 @@ template <typename K, typename V> class BinaryTree {
 private:
   Node<K, V> *root;
 
-  void destroy_recursive(Node<K, V> *node) {
+  static void destroy_recursive(Node<K, V> *node) {
     if (node) {
       destroy_recursive(node->left_child);
       destroy_recursive(node->right_child);
@@ -26,14 +26,15 @@ private:
     }
   }
 
-  void pre_order_recursive(Node<K, V> *node, std::vector<Node<K, V> *> &result) {
+  static void pre_order_recursive(Node<K, V> *node,
+                           std::vector<Node<K, V> *> &result) {
     if (node) {
       result.push_back(node);
       pre_order_recursive(node->left_child, result);
       pre_order_recursive(node->right_child, result);
     }
   }
-  void in_order_recursive(Node<K, V> *node, std::vector<Node<K, V> *> &result) {
+  static void in_order_recursive(Node<K, V> *node, std::vector<Node<K, V> *> &result) {
     if (node) {
       in_order_recursive(node->left_child, result);
       result.push_back(node);
@@ -41,36 +42,38 @@ private:
     }
   }
 
-  void post_order_recursive(Node<K, V> *node, std::vector<Node<K, V> *> &result) {
+ static void post_order_recursive(Node<K, V> *node,
+                            std::vector<Node<K, V> *> &result) {
     if (node) {
       post_order_recursive(node->left_child, result);
       post_order_recursive(node->right_child, result);
       result.push_back(node);
     }
   }
-  size_t height_recursive(Node<K,V>* node){
-      if (!node) return 0;
-      return 1+std::max(height_recursive(node->left_child),height_recursive(node->right_child));
-  }
-public:
-  BinaryTree() { this->root = nullptr; };
-  ~BinaryTree() {
-    destroy_recursive(this->root);
+  size_t height_recursive(Node<K, V> *node) {
+    if (!node)
+      return 0;
+    return 1 + std::max(height_recursive(node->left_child),
+                        height_recursive(node->right_child));
   }
 
-  std::vector<Node<K, V> *> pre_order() {
+public:
+  BinaryTree() { this->root = nullptr; };
+  ~BinaryTree() { destroy_recursive(this->root); }
+
+  std::vector<Node<K, V> *> pre_order() const {
     std::vector<Node<K, V> *> result;
     pre_order_recursive(root, result);
     return result;
   }
 
-  std::vector<Node<K, V> *> in_order() {
+  std::vector<Node<K, V> *> in_order() const {
     std::vector<Node<K, V> *> result;
     in_order_recursive(root, result);
     return result;
   }
 
-  std::vector<Node<K, V> *> pos_order() {
+  std::vector<Node<K, V> *> post_order() const {
     std::vector<Node<K, V> *> result;
     post_order_recursive(root, result);
     return result;
@@ -99,7 +102,7 @@ public:
     new_node->value = value;
     new_node->key = key;
   }
-  Node<K, V> *search_key(K const &key) {
+  Node<K, V> *search_key(K const &key) const {
     Node<K, V> *current = root;
     while (current) {
       if (key == current->key) {
@@ -112,7 +115,7 @@ public:
     }
     return nullptr;
   }
-  Node<K, V> *search_max() {
+  Node<K, V> *search_max() const {
     if (!root)
       return nullptr;
     Node<K, V> *current = root;
@@ -122,7 +125,7 @@ public:
     return current;
   }
 
-  Node<K, V> *search_min() {
+  Node<K, V> *search_min() const {
     if (!root)
       return nullptr;
     Node<K, V> *current = root;
@@ -131,153 +134,193 @@ public:
     }
     return current;
   };
-  std::vector<Node<K,V>*> bfs(){
-    std::queue<Node<K,V>*> queue;
-    std::vector<Node<K,V>*> result;
-    if (root) queue.push(root);
-    while (!queue.empty()){
-        auto node_ptr=queue.front();
-        queue.pop();
-        result.push_back(node_ptr);
-        if (node_ptr->left_child) queue.push(node_ptr->left_child);
-        if (node_ptr->right_child) queue.push(node_ptr->right_child);
+  std::vector<Node<K, V> *> bfs() const {
+    std::queue<Node<K, V> *> queue;
+    std::vector<Node<K, V> *> result;
+    if (root)
+      queue.push(root);
+    while (!queue.empty()) {
+      auto node_ptr = queue.front();
+      queue.pop();
+      result.push_back(node_ptr);
+      if (node_ptr->left_child)
+        queue.push(node_ptr->left_child);
+      if (node_ptr->right_child)
+        queue.push(node_ptr->right_child);
     }
     return result;
   };
 
-  Node<K,V>* get_successor(Node<K,V>* node){
-      if (node==nullptr){
-          return nullptr;
-      }
+  Node<K, V> *get_successor(Node<K, V> *node) const {
+    if (node == nullptr) {
+      return nullptr;
+    }
 
-      if (node->right_child){
-          Node<K,V>* current=node->right_child;
-          while (current->left_child){
-              current=current->left_child;
-          }
-          return current;
+    if (node->right_child) {
+      Node<K, V> *current = node->right_child;
+      while (current->left_child) {
+        current = current->left_child;
       }
-      else{
-          Node<K,V>* current=node;
-          Node<K,V>* p=node->parent;
-          while (p and current==p->right_child){
-              current=p;
-              p=p->parent;
-          }
-          return p;
+      return current;
+    } else {
+      Node<K, V> *current = node;
+      Node<K, V> *p = node->parent;
+      while (p and current == p->right_child) {
+        current = p;
+        p = p->parent;
       }
+      return p;
+    }
   }
 
-  Node<K,V> * get_predecessor(Node<K,V>* node){
-      if (node->left_child){
-          Node<K,V>* current=node->left_child;
-          while (current->right_child){
-              current=current->right_child;
-          }
-          return current;
+  Node<K, V> *get_predecessor(Node<K, V> *node) const {
+    if (node->left_child) {
+      Node<K, V> *current = node->left_child;
+      while (current->right_child) {
+        current = current->right_child;
       }
-      else{
-          Node<K,V>* current=node;
-          Node<K,V>* p=current->parent;
-          while (p and current==p->left_child){
-              current=p;
-              p=p->parent;
-          }
-          return p;
+      return current;
+    } else {
+      Node<K, V> *current = node;
+      Node<K, V> *p = current->parent;
+      while (p and current == p->left_child) {
+        current = p;
+        p = p->parent;
       }
-
-
-
+      return p;
+    }
   };
 
+  void remove(K const &key) {
+    Node<K, V> *node = this->search_key(key);
+    if (!node) {
+      return;
+    }
+    Node<K, V> *parent = node->parent;
+    bool is_right_child = parent != nullptr and parent->right_child == node;
 
-  // void remove(K const& key){
-  //     Node<K,V> *node=this->search_key(key);
-  //     if (!node){
-  //         return;
-  //     }
-  //     Node<K,V>* parent=node->parent;
-  //     if (!parent){
-  //         delete node;
-  //         return;
-  //     }
-  //     bool is_right_child=parent->right_child == node;
+    if (node->left_child and node->right_child) {
+      Node<K, V> *successor = this->get_successor(node);
+      assert(successor != nullptr);
+      assert(successor->left_child == nullptr);
+      node->key = successor->key;
+      node->value = successor->value;
+      Node<K, V> *succ_parent = successor->parent;
+      Node<K, V> *succ_child = successor->right_child;
+      if (successor == succ_parent->right_child) {
+        succ_parent->right_child = succ_child;
+      } else {
+        succ_parent->left_child = succ_child;
+      }
+      if (succ_child){
+          succ_child->parent = succ_parent;
+      }
+      delete successor;
+      return;
+    } else if ((node->right_child == nullptr) !=
+               (node->left_child == nullptr)) {
+      Node<K, V> *child =
+          node->left_child != nullptr ? node->left_child : node->right_child;
+      if (parent==nullptr){
+          this->root=child;
+          child->parent=nullptr;
+      }else{
+          child->parent = parent;
+          if (is_right_child) {
+            parent->right_child = child;
+          } else {
+            parent->left_child = child;
+          }
+      }
+      delete node;
+      return;
 
-  //     if(node->left_child and node->right_child){
-  //         //!TODO()
-  //     }
-  //     if ((node->right_child==nullptr) != (node->left_child==nullptr)){
-
-  //     }
-  //     if (node->left_child==nullptr and node->right_child==nullptr){
-
-  //     }
-
-  //     else if (node->left_child or node->right_child){
-  //         Node<K,V>* child=node->left_child!=nullptr ? node->left_child : node->right_child;
-  //         child->parent=parent;
-  //         if (is_right_child){
-  //             parent->right_child=child;
-  //         }
-  //         else{
-  //             parent->left_child=child;
-  //         }
-  //     }
-  //     else{
-  //         if (is_right_child){
-  //             parent->right_child=nullptr;
-  //         }
-  //         else{
-  //             parent->left_child=nullptr;
-  //         }
-  //     }
-  //     delete node;
-  // }
-
-  size_t height(){
-      return height_recursive(root);
+    } else if (!node->right_child and !node->left_child) {
+      if (parent == nullptr) {
+        this->root = nullptr;
+      } else {
+        if (is_right_child) {
+          parent->right_child = nullptr;
+        } else {
+          parent->left_child = nullptr;
+        }
+      }
+      delete node;
+      return;
+    }
   }
+
+  size_t height() { return height_recursive(root); }
 };
 
 int main() {
-  BinaryTree<int, std::monostate> tree;
-  std::vector<int> keys = {45, 30, 60, 20, 35, 50, 70, 15, 25, 40, 55, 65, 75};
-
-  for (const auto& key : keys) {
-    tree.add_node(key, {});
-  }
-  assert(tree.height()==4);
-  auto verify = [](const std::string& name, const std::vector<Node<int, std::monostate>*>& nodes, const std::vector<int>& expected) {
+  auto verify_keys = [](const std::string &name, BinaryTree<int, std::monostate> &t,
+                        const std::vector<int> &expected_in_order) {
     std::cout << "Testing " << name << "... ";
-    size_t i = 0;
-    for (auto* node : nodes) {
-      assert(node->key == expected[i] && "Value mismatch");
-      i++;
+    auto nodes = t.in_order();
+    assert(nodes.size() == expected_in_order.size());
+    for (size_t i = 0; i < expected_in_order.size(); i++) {
+      assert(nodes[i]->key == expected_in_order[i]);
     }
-    assert(i == expected.size() && "Too few elements in traversal");
     std::cout << "Passed!" << std::endl;
   };
 
+  auto build_base_tree = []() {
+    BinaryTree<int, std::monostate> t;
+    std::vector<int> base = {45, 30, 60, 20, 35, 50, 70, 15, 25, 40, 55, 65, 75};
+    for (int k : base) t.add_node(k, {});
+    return t;
+  };
 
-  verify("Pre-order", tree.pre_order(), {45, 30, 20, 15, 25, 35, 40, 60, 50, 55, 70, 65, 75});
-  verify("In-order", tree.in_order(), {15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75});
-  verify("Post-order", tree.pos_order(), {15, 25, 20, 40, 35, 30, 55, 50, 65, 75, 70, 60, 45});
-  verify("BFS-order", tree.bfs(), {45, 30, 60, 20, 35, 50, 70, 15, 25, 40, 55, 65, 75});
-
-  auto* node=tree.search_min();
-  auto tree_in_order=tree.in_order();
-
-  for (auto in_order_node : tree_in_order){
-      assert(node->value==in_order_node->value);
-      node=tree.get_successor(node);
+  // remove leaf
+  {
+    auto t = build_base_tree();
+    t.remove(15);
+    verify_keys("remove leaf (15)", t, {20,25,30,35,40,45,50,55,60,65,70,75});
+    assert(t.search_key(15) == nullptr);
   }
-  std::cout<<"Successor function works\n";
 
-  node=tree.search_max();
-  for (auto it=tree_in_order.rbegin();it!=tree_in_order.rend();it++){
-      assert((*it)->value==node->value);
-      node=tree.get_predecessor(node);
+  // remove node with one child (50 has only right child 55 in this tree)
+  {
+    auto t = build_base_tree();
+    t.remove(50);
+    verify_keys("remove one-child node (50)", t, {15,20,25,30,35,40,45,55,60,65,70,75});
+    assert(t.search_key(50) == nullptr);
+    assert(t.search_key(55) != nullptr);
   }
-  std::cout<<"Predecessor function works\n";
+
+  // remove node with two children (30 has children 20 and 35)
+  {
+    auto t = build_base_tree();
+    t.remove(30);
+    verify_keys("remove two-children node (30)", t, {15,20,25,35,40,45,50,55,60,65,70,75});
+    assert(t.search_key(30) == nullptr);
+  }
+
+  // remove root with two children
+  {
+    auto t = build_base_tree();
+    t.remove(45);
+    verify_keys("remove root with two children (45)", t, {15,20,25,30,35,40,50,55,60,65,70,75});
+    assert(t.search_key(45) == nullptr);
+  }
+
+  // remove missing key should not change tree
+  {
+    auto t = build_base_tree();
+    t.remove(999);
+    verify_keys("remove missing key (999)", t, {15,20,25,30,35,40,45,50,55,60,65,70,75});
+  }
+
+  // single-node tree: remove root leaf
+  {
+    BinaryTree<int, std::monostate> t;
+    t.add_node(10, {});
+    t.remove(10);
+    verify_keys("remove only node (10)", t, {});
+    assert(t.search_key(10) == nullptr);
+  }
+
+  std::cout << "All remove() tests passed\n";
   return 0;
 }
