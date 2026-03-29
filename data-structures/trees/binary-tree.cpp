@@ -8,13 +8,14 @@
 
 template <typename K, typename V> struct Node {
   K key;
+  [[no_unique_address]]
   V value;
   Node *parent = nullptr;
   Node *left_child = nullptr;
   Node *right_child = nullptr;
 };
 
-template <typename K, typename V> class BinaryTree {
+template <typename K, typename V> class BinarySearchTree {
 private:
   Node<K, V> *root;
 
@@ -58,8 +59,8 @@ private:
   }
 
 public:
-  BinaryTree() { this->root = nullptr; };
-  ~BinaryTree() { destroy_recursive(this->root); }
+  BinarySearchTree() { this->root = nullptr; };
+  ~BinarySearchTree() { destroy_recursive(this->root); }
 
   std::vector<Node<K, V> *> pre_order() const {
     std::vector<Node<K, V> *> result;
@@ -253,8 +254,12 @@ public:
   size_t height() { return height_recursive(root); }
 };
 
+template <typename K>
+using Set = BinarySearchTree<K,std::monostate>;
+
+
 int main() {
-  auto verify_keys = [](const std::string &name, BinaryTree<int, std::monostate> &t,
+  auto verify_keys = [](const std::string &name, Set<int> &t,
                         const std::vector<int> &expected_in_order) {
     std::cout << "Testing " << name << "... ";
     auto nodes = t.in_order();
@@ -266,7 +271,7 @@ int main() {
   };
 
   auto build_base_tree = []() {
-    BinaryTree<int, std::monostate> t;
+    Set<int> t;
     std::vector<int> base = {45, 30, 60, 20, 35, 50, 70, 15, 25, 40, 55, 65, 75};
     for (int k : base) t.add_node(k, {});
     return t;
@@ -314,7 +319,7 @@ int main() {
 
   // single-node tree: remove root leaf
   {
-    BinaryTree<int, std::monostate> t;
+    Set<int> t;
     t.add_node(10, {});
     t.remove(10);
     verify_keys("remove only node (10)", t, {});
